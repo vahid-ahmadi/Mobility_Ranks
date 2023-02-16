@@ -1,0 +1,41 @@
+import math
+
+# Function to calculate the geographical distance between two points
+def geo_distance(lat1, lon1, lat2, lon2):
+    R = 6371  # Earth radius in km
+    d_lat = math.radians(lat2 - lat1)
+    d_lon = math.radians(lon2 - lon1)
+    lat1 = math.radians(lat1)
+    lat2 = math.radians(lat2)
+    a = math.sin(d_lat/2) * math.sin(d_lat/2) + math.sin(d_lon/2) * math.sin(d_lon/2) * math.cos(lat1) * math.cos(lat2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    return R * c
+
+# Function to check the first condition: if the geographical distance between two data points is less than a threshold
+def check_geo_distance(data1, data2, dist_threshold):
+    lat1, lon1 = data1[2]
+    lat2, lon2 = data2[2]
+    return geo_distance(lat1, lon1, lat2, lon2) < dist_threshold
+
+# Function to check the second condition: if the difference between the averages of two data points is within a confidence interval
+def check_average_difference(data1, data2):
+    avg1, se1 = data1[3], data1[4]
+    avg2, se2 = data2[3], data2[4]
+    diff = avg1 - avg2
+    se_diff = math.sqrt(se1**2 + se2**2)
+    z_score = diff / se_diff
+    return abs(z_score) < 1.96
+
+# Main function to group the data points
+def group_data(data, dist_threshold):
+    groups = [1]  # First data point is in the first group
+    for i in range(1, len(data)):
+        group_found = False
+        for j in range(i):
+            if check_geo_distance(data[i], data[j], dist_threshold) and check_average_difference(data[i], data[j]):
+                groups.append(groups[j])  # Assign the same group as data[j]
+                group_found = True
+                break
+            if not group_found:
+                groups.append(max(groups) + 1)  # Create a new group
+    return groups
